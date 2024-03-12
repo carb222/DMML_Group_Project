@@ -1,0 +1,106 @@
+---
+title: "DM/ML Group Project"
+output: html_document
+date: "2024-03-10"
+---
+
+```{r}
+library(class)
+```
+
+
+# Data Processing
+
+```{r}
+# Reading the data
+data <- read.csv("group_22.csv")
+data <- data[, c(-1, -14)]
+```
+
+```{r}
+# Splitting the data
+set.seed(1)
+n <- nrow(data)
+ind1 <- sample(c(1:n), floor(0.5*n))
+ind2 <- sample(c(1:n)[-ind1], floor(0.25*n))
+ind3 <- setdiff(c(1:n), c(ind1, ind2))
+data.train <- data[ind1, ]
+data.valid <- data[ind2, ]
+data.test <- data[ind3, ]
+```
+
+
+# Finding the Optimal k
+
+```{r}
+# Finding the optimal k using validation CCR
+set.seed(876)
+K <- c(1:50)
+valid.corr <- c()
+for (k in K){
+  valid.pred <- knn(data.train[, 1:12], data.valid[, 1:12], data.train[, 13], k = k)
+  valid.corr[k] <- mean(data.valid[, 13] == valid.pred)
+}
+plot(K, valid.corr, type = "b", ylab = "Validation Correct Classification Rate", xlab = "k")
+abline(v = which.max(valid.corr), lty = 2, col = "blue")
+```
+
+
+# Fitting the kNN model
+
+```{r}
+# Fitting the model and predicting the test set
+# Optimal k from validation CCR
+set.seed(987)
+k.opt <- which.max(valid.corr)
+test.pred <- knn(data.train[, 1:12], data.test[, 1:12], data.train[, 13], k = k.opt)
+table(data.test$Amphet, test.pred)
+# Test CCR
+mean(data.test$Amphet == test.pred)
+```
+
+
+# Using Leave-One-Out Cross-Validation
+
+```{r}
+# Re-splitting the data
+set.seed(2)
+n <- nrow(data)
+ind <- sample(c(1:n), floor(0.75*n))
+data.train <- data[ind, ]
+data.test <- data[-ind, ]
+```
+
+```{r}
+set.seed(876)
+K <- c(1:50)
+cv.corr <- c()
+for (k in K){
+  train.pred <- knn.cv(data.train[, 1:12], data.train[, 13], k = k)
+  cv.corr[k] <- mean(data.train[, 13] == train.pred)
+}
+plot(K, cv.corr, type = "b", ylab = "Leave-One-Out Cross-Validation")
+abline(v = which.max(cv.corr), lty = 2, col = "blue")
+```
+
+```{r}
+# Fitting the model and predicting the test set
+# Optimal k from leave-one-out cross-validation
+set.seed(987)
+k.opt <- which.max(cv.corr)
+test.pred <- knn(data.train[, 1:12], data.test[, 1:12], data.train[, 13], k = k.opt)
+table(data.test$Amphet, test.pred)
+# Test CCR
+mean(data.test$Amphet == test.pred)
+```
+
+
+
+
+
+
+
+
+
+
+
