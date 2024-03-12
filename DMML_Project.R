@@ -98,21 +98,59 @@ softplus <- function(x) log(1+exp(x))
 #              Ethnicity_Asian+Ethnicity_Black+Ethnicity_Mixed_Black_Asian+Ethnicity_Mixed_White_Asian+Ethnicity_Mixed_White_Black+Ethnicity_Other+Ethnicity_White,
 #             data=nn_train, hidden=c(2,2,2,2,2,2,2,2),rep=10,err.fct = "sse",lifesign="full",act.fct="tanh",linear.output=FALSE)
 #SS+Country_UK+Impulsive+Country_USA+Oscore+Gender+Cscore+Education+Ascore+Age+Ethnicity_Black
+
+sample_size <- floor(0.2*nrow(nn_train))
+sample_indices <- sample(c(1:nrow(nn_train)), 100)
+
 nn=neuralnet(Merged_Amphet~.,
-           data=nn_train[,-25], hidden=c(14),rep=2,err.fct = "ce",stepmax=150000,lifesign="full",act.fct="logistic",linear.output=FALSE)
+           data=nn_train[sample_indices,-25], hidden=c(50,50,50,50,50),rep=1,err.fct = "ce",stepmax=150000,lifesign="full",act.fct="logistic",linear.output=FALSE)
+print(nn)
+#Fit Neural Network with smaller samples
+trials <- 100
+neural_nets <- list()
+for (i in 1:trials){
+  print(i)
+  sample_size <- 100
+  indices <- sample(c(1:nrow(nn_train)), sample_size)
+  variables_out <- append(sample(1:24,5),25)
+  neural_nets[i] <- list(neuralnet(Merged_Amphet~.,
+                              data=nn_train[indices,-variables_out], hidden=c(20,15),rep=1,err.fct = "ce",stepmax=500000,lifesign="full",act.fct="logistic",linear.output=FALSE))
+}
 
 #Predict and evaluate training and testing accuracy
 #Training accuracy
+super_pred <- function(model_list, data){
+  final_probs <- matrix(data=rep(FALSE,3*nrow(data)),ncol=3,nrow=nrow(data))
+  for(i in 1:length(model_list)){
+    model <- model_list[[i]]
+    prediction <- predict(model, data)
+    prediction <- prediction == apply(prediction,1,max)
+    final_probs = final_probs + prediction
+  }
+  final_probs <- final_probs/length(model_list)
+  final_probs
+}
+
+
 nn_train_pred <-
-  nn_train %>% mutate(pred = max.col(predict(nn, nn_train))) %>% 
+  nn_train %>% mutate(pred = max.col(super_pred(neural_nets, nn_train))) %>% 
   mutate(accuracy= pred==as.numeric(nn_train$Merged_Amphet))
 mean(nn_train_pred$accuracy)
 #Testing accuracy
 nn_test_pred <-
-  nn_test %>% mutate(pred = max.col(predict(nn, nn_test))) %>% 
+  nn_test %>% mutate(pred = max.col(super_pred(neural_nets, nn_test))) %>% 
   mutate(accuracy= pred==as.numeric(nn_test$Merged_Amphet))
 mean(nn_test_pred$accuracy)
 #training accuracy around 70%, testing around 57%
 
+#################
+# Random Forest
+#################
+
+library(randomForest)
+
+rf <- randomForest(Merged_Amphet~., data=nn_train[,-25], ntree=200, replace=TRUE, importance=TRUE)
+mean(predict(rf,nn_train) == nn_train$Merged_Amphet)
+mean(predict(rf,nn_test) == nn_test$Merged_Amphet)
 
 
