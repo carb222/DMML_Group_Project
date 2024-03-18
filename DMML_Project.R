@@ -171,6 +171,112 @@ ggplot(train, aes(x = Merged_Amphet, y = SS, fill = Merged_Amphet)) +
   theme_minimal()
 
 
+####creating the test data again with normal columns 
+drug <- read.csv("group_22.csv") 
+drug <- drug %>% filter(Semer=="CL0")
+drug$Merged_Amphet <- ifelse(drug$Amphet %in% c("CL0"), "Never Used",
+                             ifelse(drug$Amphet %in% c("CL1", "CL2"), "Used Over a Year Ago",
+                                    "Used in the Last Year"))
+
+drug$Amphet <- as.factor(drug$Amphet)
+drug$Merged_Amphet <- as.factor(drug$Merged_Amphet)
+
+
+#split into training and testing
+training_n <- floor(0.8*nrow(drug))
+training_indices <- sample(c(1:nrow(drug)), training_n)
+
+#remove ID and fake drug 
+cols <- c("ID", "Semer")
+drug_numeric <- drug %>% select(-one_of(cols)) %>% 
+  relocate(Amphet, .before=Merged_Amphet)
+
+train <- drug_numeric[training_indices, ]
+test <- drug_numeric[-training_indices, ]
+
+
+
+train$Ethnicity <- factor(train$Ethnicity)
+train$Merged_Amphet <- factor(train$Merged_Amphet, levels = c("Never Used", "Used in the Last Year", "Used Over a Year Ago"))
+
+#mapping numeric values to ethnicities
+ethnicity_labels <- c("-0.50212" = "Asian",
+                      "-1.10702" = "Black",
+                      "1.90725" = "Mixed-Black/Asian",
+                      "0.12600" = "Mixed-White/Asian",
+                      "-0.22166" = "Mixed-White/Black",
+                      "0.11440" = "Other",
+                      "-0.31685" = "White")
+
+ggplot(train, aes(x = as.factor(Ethnicity), fill = Merged_Amphet)) +
+  geom_bar(position = "fill") +
+  scale_x_discrete(labels = function(x) ethnicity_labels[x]) + # Map numeric values to ethnicities
+  scale_fill_manual(values = c("Never Used" = "blue", "Used in the Last Year" = "green", "Used Over a Year Ago" = "red")) +
+  labs(title = "Amphetamine Usage by Ethnicity", x = "Ethnicity", y = "Proportion of drug usage") +
+  theme_minimal()
+
+###COUNTRY~PROPORTION
+#Mapping numeric values to countries
+country_labels <- c("-0.09765" = "Australia",
+                    "0.24923" = "Canada",
+                    "-0.46841" = "New Zealand",
+                    "-0.28519" = "Other",
+                    "0.21128" = "Republic of Ireland",
+                    "0.96082" = "UK",
+                    "-0.57009" = "USA")
+
+ggplot(train, aes(x = as.factor(Country), fill = Merged_Amphet)) +
+  geom_bar(position = "fill") +
+  scale_x_discrete(labels = function(x) country_labels[x]) + # Map numeric values to countries
+  scale_fill_manual(values = c("Never Used" = "blue", "Used in the Last Year" = "green", "Used Over a Year Ago" = "red")) +
+  labs(title = "Amphetamine Usage by Country", x = "Country", y = "Proportion of drug usage") +
+  theme_minimal()
+
+
+###GENDER PROPORTION
+gender_labels <- c("0.48246" = "Female",
+                   "-0.48246" = "Male")
+
+ggplot(train, aes(x = as.factor(Gender), fill = Merged_Amphet)) +
+  geom_bar(position = "fill") +
+  scale_x_discrete(labels = function(x) gender_labels[x]) + # Map numeric values to genders
+  scale_fill_manual(values = c("Never Used" = "blue", "Used in the Last Year" = "green", "Used Over a Year Ago" = "red")) +
+  labs(title = "Amphetamine Usage by Gender", x = "Gender", y = "Proportion of drug usage") +
+  theme_minimal()
+
+####EDUCATION~PROPORTION
+education_labels <- c("-2.43591" = "Left school before 16 years",
+                      "-1.73790" = "Left school at 16 years",
+                      "-1.43719" = "Left school at 17 years",
+                      "-1.22751" = "Left school at 18 years",
+                      "-0.61113" = "Some college or university, no certificate or degree",
+                      "-0.05921" = "Professional certificate/ diploma",
+                      "0.45468" = "University degree",
+                      "1.16365" = "Masters degree",
+                      "1.98437" = "Doctorate degree")
+
+ggplot(train, aes(x = as.factor(Education), fill = Merged_Amphet)) +
+  geom_bar(position = "fill") +
+  scale_x_discrete(labels = function(x) education_labels[x]) + # Map numeric values to education levels
+  scale_fill_manual(values = c("Never Used" = "blue", "Used in the Last Year" = "green", "Used Over a Year Ago" = "red")) +
+  labs(title = "Amphetamine Usage by Education Level", x = "Education Level", y = "Proportion of drug usage") +
+  theme_minimal()
+
+
+###AGE~PROPORTION
+age_labels <- c("-0.95197" = "18-24",
+                "-0.07854" = "25-34",
+                "0.49788" = "35-44",
+                "1.09449" = "45-54",
+                "1.82213" = "55-64",
+                "2.59171" = "65+")
+
+ggplot(train, aes(x = as.factor(Age), fill = Merged_Amphet)) +
+  geom_bar(position = "fill") +
+  scale_x_discrete(labels = function(x) age_labels[x]) + # Map numeric values to age groups
+  scale_fill_manual(values = c("Never Used" = "blue", "Used in the Last Year" = "green", "Used Over a Year Ago" = "red")) +
+  labs(title = "Amphetamine Usage by Age Group", x = "Age Group", y = "Proportion of drug usage") +
+  theme_minimal()
 
 
 
