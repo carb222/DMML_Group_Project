@@ -54,12 +54,13 @@ drug <- dummy_cols(drug,c("Country", "Ethnicity"), remove_selected_columns=TRUE)
 drug$Merged_Amphet <- ifelse(drug$Amphet %in% c("CL0"), "Never Used",
                              ifelse(drug$Amphet %in% c("CL1", "CL2"), "Used Over a Year Ago",
                                     "Used in the Last Year"))
+drug$Amphet <- as.factor(drug$Amphet)
+drug$Merged_Amphet <- as.factor(drug$Merged_Amphet)
+
 #remove ID and fake drug 
 cols <- c("ID", "Semer")
 drug_numeric <- drug %>% select(-one_of(cols)) %>% 
   relocate(Amphet, .before=Merged_Amphet)
-drug$Amphet <- as.factor(drug$Amphet)
-drug$Merged_Amphet <- as.factor(drug$Merged_Amphet)
 
 #__________________________________________________________
 
