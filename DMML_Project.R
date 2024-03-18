@@ -92,8 +92,12 @@ ggplot(dataset, aes(x=lda.LD1, y=lda.LD2)) +
   geom_point(aes(group=Type, colour=Type, shape=Type))
 
 ### LDA Prediction Rate----
-LDA_Accuracy = mean(test$Merged_Amphet == data.pred.LDA$class)
-print(LDA_Accuracy)
+# Create confusion matrix
+LDA_conf_matrix <- confusionMatrix(data.pred.LDA$class, test$Merged_Amphet)
+# Extract accuracy
+LDA_accuracy <- LDA_conf_matrix$overall["Accuracy"]
+cat("SVM Accuracy:", LDA_accuracy, "\n")
+
 
 #__________________________________________________________
 
@@ -126,3 +130,8 @@ SVM_conf_matrix <- confusionMatrix(test.pred, test$Merged_Amphet)
 # Extract accuracy
 SVM_accuracy <- SVM_conf_matrix$overall["Accuracy"]
 cat("SVM Accuracy:", SVM_accuracy, "\n")
+
+#__________________________________________________________
+
+
+
