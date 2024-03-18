@@ -73,6 +73,30 @@ train <- drug_numeric[training_indices, ]
 test <- drug_numeric[-training_indices, ]
 #__________________________________________________________
 
+
+
+## LDA Method----
+### Creating Model ----
+data.lda <- lda(Merged_Amphet~. , data=train[,-25])
+data.pred.LDA <- predict(data.lda, test[,-25])
+dataset <- data.frame(Type=test$Merged_Amphet, lda=data.pred.LDA$x)
+
+### Plots of LDAs----
+#Density plots
+ggplot(dataset, aes(x=lda.LD1)) + 
+  geom_density(aes(group=Type, colour=Type, fill=Type), alpha=0.3)
+ggplot(dataset, aes(x=lda.LD2)) + 
+  geom_density(aes(group=Type, colour=Type, fill=Type), alpha=0.3)
+#LDA1 vs LDA2 plot
+ggplot(dataset, aes(x=lda.LD1, y=lda.LD2)) + 
+  geom_point(aes(group=Type, colour=Type, shape=Type))
+
+### LDA Prediction Rate----
+LDA_Accuracy = mean(test$Merged_Amphet == data.pred.LDA$class)
+print(LDA_Accuracy)
+
+#__________________________________________________________
+
 ## SVM Method ----
 ### Parameter tunning ----
 #Create possible parameters
