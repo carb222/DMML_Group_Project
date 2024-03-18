@@ -1,9 +1,10 @@
-#DMML Group Project
+# DMML Group Project ----
+
+#__________________________________________________________
+
 set.seed(555)
-####################################
-# Building the data set
-####################################
-#Libraries
+
+## Libraries ----
 library(ggplot2)
 library(GGally)
 library(skimr)
@@ -14,14 +15,18 @@ library(fastDummies)
 library(tidyr)
 library(dplyr)
 
-#read data
-drug <- read.csv("group_22.csv") 
-#eliminate over-claimers
-drug <- drug %>% 
-  filter(Semer == "CL0")
+#__________________________________________________________
 
+## Building the data set ----
 
-#since these variables do not have an inherent hierarchy 
+### Read data ----
+drug <- read.csv("group_22.csv")
+
+### Data tidying ----
+#Eliminate over-claimers
+drug <- drug %>% filter(Semer=="CL0")
+
+#Since these variables do not have an inherent hierarchy 
 #convert Ethnicity and Country columns to dummies
 drug$Country <- ifelse(drug$Country==-0.09765,"Australia",
                        ifelse(drug$Country==0.24923,"Canada",
@@ -46,51 +51,43 @@ drug <- dummy_cols(drug,c("Country", "Ethnicity"), remove_selected_columns=TRUE)
 
 
 #target variable to factor
-
 drug$Merged_Amphet <- ifelse(drug$Amphet %in% c("CL0"), "Never Used",
                              ifelse(drug$Amphet %in% c("CL1", "CL2"), "Used Over a Year Ago",
                                     "Used in the Last Year"))
-
+#remove ID and fake drug 
+cols <- c("ID", "Semer")
+drug_numeric <- drug %>% select(-one_of(cols)) %>% 
+  relocate(Amphet, .before=Merged_Amphet)
 drug$Amphet <- as.factor(drug$Amphet)
 drug$Merged_Amphet <- as.factor(drug$Merged_Amphet)
 
+#__________________________________________________________
 
-#split into training and testing
+## Split into training and testing ----
 training_n <- floor(0.8*nrow(drug))
 training_indices <- sample(c(1:nrow(drug)), training_n)
 
-#remove ID , fake drug and Amphet
-cols <- c("ID", "Semer", "Amphet")
-drug_numeric <- drug %>% select(-one_of(cols))
-
-
 train <- drug_numeric[training_indices, ]
 test <- drug_numeric[-training_indices, ]
+#__________________________________________________________
 
 
-
-#LDA Method
-data.lda <- lda(Merged_Amphet~. , data=train)
-data.pred.LDA <- predict(data.lda, test)
+## LDA Method----
+### Creating Model ----
+data.lda <- lda(Merged_Amphet~. , data=train[,-25])
+data.pred.LDA <- predict(data.lda, test[,-25])
 dataset <- data.frame(Type=test$Merged_Amphet, lda=data.pred.LDA$x)
 
-#Density plots of LDAs
+### Plots of LDAs----
+#Density plots
 ggplot(dataset, aes(x=lda.LD1)) + 
   geom_density(aes(group=Type, colour=Type, fill=Type), alpha=0.3)
 ggplot(dataset, aes(x=lda.LD2)) + 
   geom_density(aes(group=Type, colour=Type, fill=Type), alpha=0.3)
-
-# LDA1 vs LDA2
+#LDA1 vs LDA2 plot
 ggplot(dataset, aes(x=lda.LD1, y=lda.LD2)) + 
   geom_point(aes(group=Type, colour=Type, shape=Type))
 
-# LDA Prediction rate
-mean(test$Merged_Amphet == data.pred.LDA$class)
-
-####ERROR HERE###
-#QDA Method
-drugs.qda <- qda(Merged_Amphet~., data=train)
-drugs.pred.QDA <- predict(drugs.qda, test)
-# QDA Prediction rate
-mean(test$Merged_Amphet == drugs.pred.QDA$class)
-###----------###
+### LDA Prediction Rate----
+LDA_Accuracy = mean(test$Merged_Amphet == data.pred.LDA$class)
+print(LDA_Accuracy)
