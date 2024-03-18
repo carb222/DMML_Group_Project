@@ -1,8 +1,9 @@
 # DMML Group Project ----
 
 #__________________________________________________________
-  
+
 set.seed(555)
+
 ## Libraries ----
 library(ggplot2)
 library(GGally)
@@ -15,7 +16,7 @@ library(tidyr)
 library(dplyr)
 
 #__________________________________________________________
-  
+
 ## Building the data set ----
 
 ### Read data ----
@@ -61,14 +62,32 @@ drug$Amphet <- as.factor(drug$Amphet)
 drug$Merged_Amphet <- as.factor(drug$Merged_Amphet)
 
 #__________________________________________________________
-  
+
 ## Split into training and testing ----
 training_n <- floor(0.8*nrow(drug))
 training_indices <- sample(c(1:nrow(drug)), training_n)
 
 train <- drug_numeric[training_indices, ]
 test <- drug_numeric[-training_indices, ]
-
 #__________________________________________________________
 
 
+## LDA Method----
+### Creating Model ----
+data.lda <- lda(Merged_Amphet~. , data=train[,-25])
+data.pred.LDA <- predict(data.lda, test[,-25])
+dataset <- data.frame(Type=test$Merged_Amphet, lda=data.pred.LDA$x)
+
+### Plots of LDAs----
+#Density plots
+ggplot(dataset, aes(x=lda.LD1)) + 
+  geom_density(aes(group=Type, colour=Type, fill=Type), alpha=0.3)
+ggplot(dataset, aes(x=lda.LD2)) + 
+  geom_density(aes(group=Type, colour=Type, fill=Type), alpha=0.3)
+#LDA1 vs LDA2 plot
+ggplot(dataset, aes(x=lda.LD1, y=lda.LD2)) + 
+  geom_point(aes(group=Type, colour=Type, shape=Type))
+
+### LDA Prediction Rate----
+LDA_Accuracy = mean(test$Merged_Amphet == data.pred.LDA$class)
+print(LDA_Accuracy)
