@@ -1,11 +1,11 @@
-#DMML Group Project
-set.seed(555)
-####################################
-# Building the data set
-####################################
+# DMML Group Project ----
 
-#Libraries
-library(ggplot2)
+#__________________________________________________________
+
+set.seed(555)
+
+## Libraries ----
+library(ggplot2) 
 library(GGally)
 library(skimr)
 library(MASS)
@@ -15,14 +15,18 @@ library(fastDummies)
 library(tidyr)
 library(dplyr)
 
-#read data
-drug <- read.csv("group_22.csv") 
+#__________________________________________________________
 
-#eliminate over-claimers
+## Building the data set ----
+
+### Read data ----
+drug <- read.csv("group_22.csv")
+
+### Data tidying ----
+#Eliminate over-claimers
 drug <- drug %>% filter(Semer=="CL0")
 
-
-#since these variables do not have an inherent hierarchy 
+#Since these variables do not have an inherent hierarchy 
 #convert Ethnicity and Country columns to dummies
 drug$Country <- ifelse(drug$Country==-0.09765,"Australia",
                        ifelse(drug$Country==0.24923,"Canada",
@@ -47,66 +51,54 @@ drug <- dummy_cols(drug,c("Country", "Ethnicity"), remove_selected_columns=TRUE)
 
 
 #target variable to factor
-
 drug$Merged_Amphet <- ifelse(drug$Amphet %in% c("CL0"), "Never Used",
                              ifelse(drug$Amphet %in% c("CL1", "CL2"), "Used Over a Year Ago",
                                     "Used in the Last Year"))
-
 drug$Amphet <- as.factor(drug$Amphet)
 drug$Merged_Amphet <- as.factor(drug$Merged_Amphet)
 
+#remove ID and fake drug 
+cols <- c("ID", "Semer")
+drug_numeric <- drug %>% select(-one_of(cols)) %>% 
+  relocate(Amphet, .before=Merged_Amphet)
 
-#split into training and testing
+
+#__________________________________________________________
+
+## Split into training and testing ----
 training_n <- floor(0.8*nrow(drug))
 training_indices <- sample(c(1:nrow(drug)), training_n)
 
-#remove ID and fake drug 
-cols <- c("ID", "Semer", "Amphet")
-drug_numeric <- drug[, -which(names(drug) %in% cols)]
-
-
 train <- drug_numeric[training_indices, ]
 test <- drug_numeric[-training_indices, ]
+#__________________________________________________________
 
-
-#Create possible variables
-cost_range <- c(0.001,0.01,0.1,1,10,100)
-degree_range <- 1:8
-gamma_range <- c(0.001,0.01,0.1,1,10,100)
-
+## SVM Method ----
+### Parameter tunning ----
+#Create possible parameters
+cost_range <- c(0.1,1,10,12,100)
+degree_range <- 1:5
+gamma_range <- c(0.001,0.01,0.015,0.1,1)
 # Tune Polynomial SVM
-SVM_poly <- tune.svm(Merged_Amphet~., data=train, type="C-classification", kernel="polynomial", cost=cost_range, degree=degree_range)
+SVM_poly <- tune.svm(Merged_Amphet~., data=train[,-25], type="C-classification", kernel="polynomial", cost=cost_range, degree=degree_range)
 summary(SVM_poly)
-
 #Tune Radial SVM
-SVM_RBF <- tune.svm(Merged_Amphet~., data=train, type="C-classification", kernel="radial", cost=cost_range, gamma=gamma_range)
+SVM_RBF <- tune.svm(Merged_Amphet~., data=train[,-25], type="C-classification", kernel="radial", cost=cost_range, gamma=gamma_range)
 summary(SVM_RBF)
-
-
 #Best parameters
 SVM_poly$best.parameters
 SVM_RBF$best.parameters
+gamma <- SVM_RBF$best.parameters[, "gamma"]
+cost <- SVM_RBF$best.parameters[, "cost"]
+#RBF showed less error
 
-#Prediction for best model
-SVM_final <- svm(Merged_Amphet~., data=train, type="C-classification", kernel="radial", cost=10, gamma_range=0.01)
-test.pred <- predict(SVM_final,test)
+###Creating Model----
+SVM_final <- svm(Merged_Amphet~., data=train[,-25], type="C-classification", kernel="radial", cost=cost, gamma_range=gamma)
+test.pred <- predict(SVM_final,test[,-25])
 
-# Check levels of test$Merged_Amphet
-levels(test$Merged_Amphet)
-# Check levels of test.pred
-levels(test.pred)
-# Align levels if needed
-levels(test.pred) <- levels(test$Merged_Amphet)
-
-# Now try the table() function
-result_table <- table(test$Merged_Amphet, test.pred)
-print(result_table)
-
+### SVM Prediction Rate----
 # Create confusion matrix
-conf_matrix <- confusionMatrix(test.pred, test$Merged_Amphet)
-
+SVM_conf_matrix <- confusionMatrix(test.pred, test$Merged_Amphet)
 # Extract accuracy
-accuracy <- conf_matrix$overall["Accuracy"]
-cat("Accuracy:", accuracy, "\n")
-
-
+SVM_accuracy <- SVM_conf_matrix$overall["Accuracy"]
+cat("SVM Accuracy:", SVM_accuracy, "\n")
