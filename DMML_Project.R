@@ -4,7 +4,7 @@ set.seed(555)
 # Building the data set
 ####################################
 library(fastDummies)
-
+library(tidyverse)
 #read data
 drug <- read.csv("group_22.csv") 
 
@@ -57,6 +57,119 @@ drug_numeric <- drug %>% select(-one_of(cols)) %>%
 
 train <- drug_numeric[training_indices, ]
 test <- drug_numeric[-training_indices, ]
+
+
+###EXPLORATORY ANALYSIS
+train
+str(train)
+summary(train)
+
+
+# Provided values and their corresponding age ranges
+library(ggplot2)
+library(GGally)
+# Plotting the density plot with customized x-axis labels
+age_values <- c(-0.95197, -0.07854, 0.49788, 1.09449, 1.82213, 2.59171)
+age_ranges <- c("18-24", "25-34", "35-44", "45-54", "55-64", "65+")
+ggplot(train, aes(x = Age, colour = Merged_Amphet)) +
+  geom_density() +
+  scale_x_continuous(breaks = age_values, labels = age_ranges)
+
+
+
+
+
+# Provided values and their corresponding education levels
+education_values <- c(-2.43591, -1.73790, -1.43719, -1.22751, -0.61113, -0.05921, 0.45468, 1.16365, 1.98437)
+education_levels <- c("Left school before 16 years", "Left school at 16 years", "Left school at 17 years",
+                      "Left school at 18 years", "Some college or university, no certificate or degree",
+                      "Professional certificate/diploma", "University degree", "Masters degree", "Doctorate degree")
+
+# Plotting the density plot with customized x-axis labels
+ggplot(train, aes(x = Education, colour = Merged_Amphet)) +
+  geom_density() +
+  scale_x_continuous(breaks = education_values, labels = education_levels)+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  scale_x_continuous(breaks = age_values, labels = age_ranges) 
+
+
+
+
+# Boxplot of drug usage based on genders and age
+age_values <- c(-0.95197, -0.07854, 0.49788, 1.09449, 1.82213, 2.59171)
+age_ranges <- c("18-24", "25-34", "35-44", "45-54", "55-64", "65+")
+ggplot(train, aes(x = as.factor(Merged_Amphet), y = Age, fill = as.factor(Gender))) +
+  geom_boxplot() +
+  labs(x = "Drug consumption", y = "Age", fill = "Gender") +
+  scale_y_continuous(breaks = age_values, labels = age_ranges) +
+ scale_fill_discrete(labels = c("Male" , "Female"))
+
+
+
+
+ggplot(train, aes(x = Merged_Amphet, y = Nscore, fill = Merged_Amphet)) +
+  geom_boxplot() +  
+  labs(title = "Distribution of Nscore by Merged Amphet",
+       x = "Merged Amphet",
+       y = "Nscore") +
+  theme_minimal()
+
+
+
+ggplot(train, aes(x = Merged_Amphet, y = Escore, fill = Merged_Amphet)) +
+  geom_boxplot() +  
+  labs(title = "Distribution of Nscore by Merged Amphet",
+       x = "Merged Amphet",
+       y = "Escore") +
+  theme_minimal()
+
+
+ggplot(train, aes(x = Merged_Amphet, y = Oscore, fill = Merged_Amphet)) +
+  geom_boxplot() +  
+  labs(title = "Distribution of Nscore by Merged Amphet",
+       x = "Merged Amphet",
+       y = "Oscore") +
+  theme_minimal()
+
+
+ggplot(train, aes(x = Merged_Amphet, y = Ascore, fill = Merged_Amphet)) +
+  geom_boxplot() +  
+  labs(title = "Distribution of Nscore by Merged Amphet",
+       x = "Merged Amphet",
+       y = "Ascore") +
+  theme_minimal()
+
+
+ggplot(train, aes(x = Merged_Amphet, y = Ascore, fill = Merged_Amphet)) +
+  geom_boxplot() +  
+  labs(title = "Distribution of Nscore by Merged Amphet",
+       x = "Merged Amphet",
+       y = "Ascore") +
+  theme_minimal()
+
+
+ggplot(train, aes(x = Merged_Amphet, y = Cscore, fill = Merged_Amphet)) +
+  geom_boxplot() +  
+  labs(title = "Distribution of Nscore by Merged Amphet",
+       x = "Merged Amphet",
+       y = "Cscore") +
+  theme_minimal()
+
+ggplot(train, aes(x = Merged_Amphet, y = Impulsive, fill = Merged_Amphet)) +
+  geom_boxplot() +  
+  labs(title = "Distribution of Nscore by Merged Amphet",
+       x = "Merged Amphet",
+       y = "Impulsive") +
+  theme_minimal()
+
+
+ggplot(train, aes(x = Merged_Amphet, y = SS, fill = Merged_Amphet)) +
+  geom_boxplot() +  
+  labs(title = "Distribution of Nscore by Merged Amphet",
+       x = "Merged Amphet",
+       y = "SS") +
+  theme_minimal()
+
 
 
 
