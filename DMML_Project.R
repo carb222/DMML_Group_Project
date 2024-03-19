@@ -14,6 +14,10 @@ library(e1071)
 library(caret)
 library(fastDummies)
 library(class)
+library(neuralnet)
+library(NeuralNetTools)
+library(randomForest)
+library(gridExtra)
 library(tidyr)
 library(dplyr)
 
@@ -205,101 +209,6 @@ drug_numeric <- drug %>% select(-one_of(cols)) %>%
 train2 <- drug_numeric[training_indices, ]
 test2 <- drug_numeric[-training_indices, ]
 
-
-#######################
-# Neural Network
-#######################
-
-library(neuralnet)
-library(NeuralNetTools)
-
-#pca since the model  training is too slow 
-nn_train <- train ; nn_test <- test
-#my.pca <- princomp(nn_train[,-c(25,26)], cor=TRUE) #correlation-based PCA
-#summary(my.pca) #the first 18 components contain 90% of the variance
-
-#nn_train <- my.pca$scores[,1:18] %>% as.data.frame() %>% mutate(Merged_Amphet = nn_train$Merged_Amphet)
-#nn_test <- predict(my.pca, nn_test[,-c(25,26)])[,1:18] %>% as.data.frame() %>% mutate(Merged_Amphet = nn_test$Merged_Amphet)
-
-#checking correlation of covariates against target
-corr <- abs(cor(nn_train[,-c(25)]%>%mutate(Merged_Amphet=as.numeric(as.numeric(nn_train$Merged_Amphet))))[-25,25]) %>% as.data.frame()
-colnames(corr) <- c("Abs_Cor")
-corr <- cbind(var = rownames(corr), corr)
-rownames(corr) <- 1:nrow(corr)
-corr %>% arrange(desc(Abs_Cor)) %>% head(10)
-
-# min-max normalisation
-maxs <- apply(nn_train[,-c(25,26)], 2, max)
-mins <- apply(nn_train[,-c(25,26)], 2, min)
-nn_train[,-c(25,26)] <- as.data.frame(scale(nn_train[,-c(25,26)],center = mins, scale = maxs - mins))
-nn_test[,-c(25,26)] <- as.data.frame(scale(nn_test[,-c(25,26)],center = mins, scale = maxs - mins))
-
-
-#train neural network
-softplus <- function(x) log(1+exp(x))
-
-
-#nn=neuralnet(Merged_Amphet~Age+Gender+Education+Nscore+Escore+Oscore+
-#               Ascore+Cscore+Impulsive+Impulsive+SS+
-#               Country_Australia+Country_Canada+Country_New_Zealand+Country_Other+Country_ROI+Country_UK+Country_USA+
-#              Ethnicity_Asian+Ethnicity_Black+Ethnicity_Mixed_Black_Asian+Ethnicity_Mixed_White_Asian+Ethnicity_Mixed_White_Black+Ethnicity_Other+Ethnicity_White,
-#             data=nn_train, hidden=c(2,2,2,2,2,2,2,2),rep=10,err.fct = "sse",lifesign="full",act.fct="tanh",linear.output=FALSE)
-#SS+Country_UK+Impulsive+Country_USA+Oscore+Gender+Cscore+Education+Ascore+Age+Ethnicity_Black
-
-sample_size <- floor(0.2*nrow(nn_train))
-sample_indices <- sample(c(1:nrow(nn_train)), 100)
-
-nn=neuralnet(Merged_Amphet~.,
-           data=nn_train[sample_indices,-25], hidden=c(50,50,50,50,50),rep=1,err.fct = "ce",stepmax=150000,lifesign="full",act.fct="logistic",linear.output=FALSE)
-print(nn)
-#Fit Neural Network with smaller samples
-trials <- 100
-neural_nets <- list()
-for (i in 1:trials){
-  print(i)
-  sample_size <- 100
-  indices <- sample(c(1:nrow(nn_train)), sample_size)
-  variables_out <- append(sample(1:24,5),25)
-  neural_nets[i] <- list(neuralnet(Merged_Amphet~.,
-                              data=nn_train[indices,-variables_out], hidden=c(20,15),rep=1,err.fct = "ce",stepmax=500000,lifesign="full",act.fct="logistic",linear.output=FALSE))
-}
-
-#Predict and evaluate training and testing accuracy
-#Training accuracy
-super_pred <- function(model_list, data){
-  final_probs <- matrix(data=rep(FALSE,3*nrow(data)),ncol=3,nrow=nrow(data))
-  for(i in 1:length(model_list)){
-    model <- model_list[[i]]
-    prediction <- predict(model, data)
-    prediction <- prediction == apply(prediction,1,max)
-    final_probs = final_probs + prediction
-  }
-  final_probs <- final_probs/length(model_list)
-  final_probs
-}
-
-
-nn_train_pred <-
-  nn_train %>% mutate(pred = max.col(super_pred(neural_nets, nn_train))) %>% 
-  mutate(accuracy= pred==as.numeric(nn_train$Merged_Amphet))
-mean(nn_train_pred$accuracy)
-#Testing accuracy
-nn_test_pred <-
-  nn_test %>% mutate(pred = max.col(super_pred(neural_nets, nn_test))) %>% 
-  mutate(accuracy= pred==as.numeric(nn_test$Merged_Amphet))
-mean(nn_test_pred$accuracy)
-#training accuracy around 70%, testing around 57%
-
-#################
-# Random Forest
-#################
-
-library(randomForest)
-
-rf <- randomForest(Merged_Amphet~., data=nn_train[,-25], ntree=200, replace=TRUE, importance=TRUE)
-mean(predict(rf,nn_train) == nn_train$Merged_Amphet)
-mean(predict(rf,nn_test) == nn_test$Merged_Amphet)
-
 train2$Ethnicity <- factor(train2$Ethnicity)
 train2$Merged_Amphet <- factor(train2$Merged_Amphet, levels = c("Never Used", "Used in the Last Year", "Used Over a Year Ago"))
 
@@ -387,6 +296,115 @@ ggplot(train2, aes(x = as.factor(Age), fill = Merged_Amphet)) +
 
 #__________________________________________________________
 
+## Neural Network Method----
+
+## PCA since the model  training is too slow
+nn_train <- train ; nn_test <- test
+#my.pca <- princomp(nn_train[,-c(25,26)], cor=TRUE) #correlation-based PCA
+#summary(my.pca) #the first 18 components contain 90% of the variance
+
+#nn_train <- my.pca$scores[,1:18] %>% as.data.frame() %>% mutate(Merged_Amphet = nn_train$Merged_Amphet)
+#nn_test <- predict(my.pca, nn_test[,-c(25,26)])[,1:18] %>% as.data.frame() %>% mutate(Merged_Amphet = nn_test$Merged_Amphet)
+
+#checking correlation of covariates against target
+corr <- abs(cor(nn_train[,-c(25)]%>%mutate(Merged_Amphet=as.numeric(as.numeric(nn_train$Merged_Amphet))))[-25,25]) %>% as.data.frame()
+colnames(corr) <- c("Abs_Cor")
+corr <- cbind(var = rownames(corr), corr)
+rownames(corr) <- 1:nrow(corr)
+corr %>% arrange(desc(Abs_Cor)) %>% head(10)
+
+# min-max normalisation
+maxs <- apply(nn_train[,-c(25,26)], 2, max)
+mins <- apply(nn_train[,-c(25,26)], 2, min)
+nn_train[,-c(25,26)] <- as.data.frame(scale(nn_train[,-c(25,26)],center = mins, scale = maxs - mins))
+nn_test[,-c(25,26)] <- as.data.frame(scale(nn_test[,-c(25,26)],center = mins, scale = maxs - mins))
+
+
+#train neural network
+softplus <- function(x) log(1+exp(x))
+
+
+#nn=neuralnet(Merged_Amphet~Age+Gender+Education+Nscore+Escore+Oscore+
+#               Ascore+Cscore+Impulsive+Impulsive+SS+
+#               Country_Australia+Country_Canada+Country_New_Zealand+Country_Other+Country_ROI+Country_UK+Country_USA+
+#              Ethnicity_Asian+Ethnicity_Black+Ethnicity_Mixed_Black_Asian+Ethnicity_Mixed_White_Asian+Ethnicity_Mixed_White_Black+Ethnicity_Other+Ethnicity_White,
+#             data=nn_train, hidden=c(2,2,2,2,2,2,2,2),rep=10,err.fct = "sse",lifesign="full",act.fct="tanh",linear.output=FALSE)
+#SS+Country_UK+Impulsive+Country_USA+Oscore+Gender+Cscore+Education+Ascore+Age+Ethnicity_Black
+
+sample_size <- floor(0.2*nrow(nn_train))
+sample_indices <- sample(c(1:nrow(nn_train)), 100)
+
+nn=neuralnet(Merged_Amphet~.,
+           data=nn_train[sample_indices,-25], hidden=c(50,50,50,50,50),rep=1,err.fct = "ce",stepmax=150000,lifesign="full",act.fct="logistic",linear.output=FALSE)
+print(nn)
+###Fitting Neural Network----
+#Fit Neural Network with smaller samples
+trials <- 100
+neural_nets <- list()
+for (i in 1:trials){
+  print(i)
+  sample_size <- 100
+  indices <- sample(c(1:nrow(nn_train)), sample_size)
+  variables_out <- append(sample(1:24,5),25)
+  neural_nets[i] <- list(neuralnet(Merged_Amphet~.,
+                              data=nn_train[indices,-variables_out], hidden=c(20,15),rep=1,err.fct = "ce",stepmax=500000,lifesign="full",act.fct="logistic",linear.output=FALSE))
+}
+
+###Predict and evaluate training and testing accuracy----
+#Training accuracy
+super_pred <- function(model_list, data){
+  final_probs <- matrix(data=rep(FALSE,3*nrow(data)),ncol=3,nrow=nrow(data))
+  for(i in 1:length(model_list)){
+    model <- model_list[[i]]
+    prediction <- predict(model, data)
+    prediction <- prediction == apply(prediction,1,max)
+    final_probs = final_probs + prediction
+  }
+  final_probs <- final_probs/length(model_list)
+  final_probs
+}
+
+
+nn_train_pred <-
+  nn_train %>% mutate(pred = max.col(super_pred(neural_nets, nn_train))) %>% 
+  mutate(accuracy= pred==as.numeric(nn_train$Merged_Amphet))
+mean(nn_train_pred$accuracy)
+
+###Testing accuracy----
+nn_test_pred <-
+  nn_test %>% mutate(pred = max.col(super_pred(neural_nets, nn_test))) %>% 
+  mutate(accuracy= pred==as.numeric(nn_test$Merged_Amphet))
+
+nn_test_pred$pred <- factor(nn_test_pred$pred,
+                            levels = c(1, 2, 3),
+                            labels = c("Never Used", "Used in the Last Year", "Used Over a Year Ago"))
+
+# Create confusion matrix
+NN_conf_matrix <- confusionMatrix(nn_test_pred$pred, nn_test_pred$Merged_Amphet)
+# Extract accuracy
+NN_accuracy <- NN_conf_matrix$overall["Accuracy"]
+cat("Neural Network Accuracy:", NN_accuracy, "\n")
+#training accuracy around 70%, testing around 57%
+
+#__________________________________________________________
+
+## Random Forest Method----
+
+###Fitting Random Forest----
+rf <- randomForest(Merged_Amphet~., data=nn_train[,-25], ntree=200, replace=TRUE, importance=TRUE)
+
+####Prediction----
+mean(predict(rf,nn_train) == nn_train$Merged_Amphet)
+
+# Create confusion matrix
+rf_conf_matrix <- confusionMatrix(predict(rf,nn_test), nn_test$Merged_Amphet)
+# Extract accuracy
+rf_accuracy <- rf_conf_matrix$overall["Accuracy"]
+cat("Random Forest Accuracy:", NN_accuracy, "\n")
+
+
+#__________________________________________________________
+
 ## LDA Method----
 set.seed(555)
 ### Creating Model ----
@@ -409,7 +427,7 @@ ggplot(dataset, aes(x=lda.LD1, y=lda.LD2)) +
 LDA_conf_matrix <- confusionMatrix(data.pred.LDA$class, test$Merged_Amphet)
 # Extract accuracy
 LDA_accuracy <- LDA_conf_matrix$overall["Accuracy"]
-cat("SVM Accuracy:", LDA_accuracy, "\n")
+cat("LDA Accuracy:", LDA_accuracy, "\n")
 
 #__________________________________________________________
 
@@ -487,14 +505,11 @@ test.pred <- knn(train[, 1:24], test[, 1:24], train[, 26], k = k.opt)
 KNN_conf_matrix <- confusionMatrix(test.pred, test$Merged_Amphet)
 # Extract accuracy
 KNN_accuracy <- KNN_conf_matrix$overall["Accuracy"]
-cat("SVM Accuracy:", SVM_accuracy, "\n")
+cat("KNN Accuracy:", KNN_accuracy, "\n")
 
 
 ## Model Comparison----
-#
-
-# Specificity Plot
-
+#Creating dfs to plot
 df1 = data.frame(LDA_conf_matrix$byClass)
 df1 = tibble::rownames_to_column(df1, var = "Class")
 df1$Method = "LDA"
@@ -504,35 +519,101 @@ df2$Method = "SVM"
 df3 = data.frame(KNN_conf_matrix$byClass)
 df3 = tibble::rownames_to_column(df3, var = "Class")
 df3$Method = "KNN"
+df4 = data.frame(NN_conf_matrix$byClass)
+df4 = tibble::rownames_to_column(df4, var = "Class")
+df4$Method = "NN"
+df5 = data.frame(rf_conf_matrix$byClass)
+df5 = tibble::rownames_to_column(df5, var = "Class")
+df5$Method = "RF"
 
-appended_df <- rbind(df1, df2, df3)
+appended_df <- rbind(df1, df2, df3, df4 , df5)
 
-ggplot(appended_df, aes(x = Class, y = Sensitivity, fill = Method)) +
+###Scores plot----
+par(mfrow = c(3, 3))
+
+plot1 = ggplot(appended_df, aes(x = Class, y = Sensitivity, fill = Method)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Sensitivity", x = "Class", y = "Values") +
   theme_minimal()
 
-ggplot(appended_df, aes(x = Class, y = Specificity , fill = Method)) +
+plot2 = ggplot(appended_df, aes(x = Class, y = Specificity , fill = Method)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Specificity", x = "Class", y = "Values") +
   theme_minimal()
 
-ggplot(appended_df, aes(x = Class, y = Pos.Pred.Value, fill = Method)) +
+plot3 = ggplot(appended_df, aes(x = Class, y = Pos.Pred.Value, fill = Method)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Pos.Pred.Value", x = "Class", y = "Values") +
   theme_minimal()
 
-ggplot(appended_df, aes(x = Class, y = Neg.Pred.Value, fill = Method)) +
+plot4 = ggplot(appended_df, aes(x = Class, y = Neg.Pred.Value, fill = Method)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Neg.Pred.Value", x = "Class", y = "Values") +
   theme_minimal()
 
-ggplot(appended_df, aes(x = Class, y = Precision, fill = Method)) +
+plot5 = ggplot(appended_df, aes(x = Class, y = Precision, fill = Method)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Precision", x = "Class", y = "Values") +
   theme_minimal()
 
-ggplot(appended_df, aes(x = Class, y = F1 , fill = Method)) +
+plot6 = ggplot(appended_df, aes(x = Class, y = F1 , fill = Method)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "F1", x = "Class", y = "Values") +
   theme_minimal()
+
+grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, nrow = 2, ncol = 3)
+
+###Accuracy Plot----
+par()
+acc_df = data.frame(Method = c("Neural Network", "Random Forest","LDA", "SVM", "KNN"),
+                    Accuracy = c(NN_accuracy,rf_accuracy,LDA_accuracy, SVM_accuracy, KNN_accuracy))
+
+acc_plot = ggplot(acc_df, aes(x = Method, y = Accuracy, fill = Method)) +
+  geom_bar(stat = "identity", color = "black", alpha = 0.7) +
+  labs(title = "Accuracy by Method", x = "Method", y = "Accuracy") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+df_LDA = data.frame(LDA_conf_matrix$table)
+df_LDA$Reference <- factor(df_LDA$Reference, levels = rev(levels(df_LDA$Reference)))
+LDA_plot = ggplot(df_LDA, aes(Prediction, Reference, fill = Freq)) +
+  geom_tile() + 
+  geom_text(aes(label = Freq)) +
+  scale_fill_gradient(low = "white", high = "#009194") +
+  labs(title = "LDA", x = "Prediction", y = "Reference")
+
+df_KNN = data.frame(KNN_conf_matrix$table)
+df_KNN$Reference <- factor(df_KNN$Reference, levels = rev(levels(df_KNN$Reference)))
+KNN_plot = ggplot(df_KNN, aes(Prediction, Reference, fill = Freq)) +
+  geom_tile() + 
+  geom_text(aes(label = Freq)) +
+  scale_fill_gradient(low = "white", high = "#009194") +
+  labs(title = "KNN", x = "Prediction", y = "Reference")
+
+df_SVM = data.frame(SVM_conf_matrix$table)
+df_SVM$Reference <- factor(df_SVM$Reference, levels = rev(levels(df_SVM$Reference)))
+SVM_plot = ggplot(df_SVM, aes(Prediction, Reference, fill = Freq)) +
+  geom_tile() + 
+  geom_text(aes(label = Freq)) +
+  scale_fill_gradient(low = "white", high = "#009194") +
+  labs(title = "SVM", x = "Prediction", y = "Reference")
+
+df_RF = data.frame(rf_conf_matrix$table)
+df_RF$Reference <- factor(df_RF$Reference, levels = rev(levels(df_RF$Reference)))
+RF_plot = ggplot(df_RF, aes(Prediction, Reference, fill = Freq)) +
+  geom_tile() + 
+  geom_text(aes(label = Freq)) +
+  scale_fill_gradient(low = "white", high = "#009194") +
+  labs(title = "Random Forest", x = "Prediction", y = "Reference")
+
+df_NN = data.frame(NN_conf_matrix$table)
+df_NN$Reference <- factor(df_NN$Reference, levels = rev(levels(df_NN$Reference)))
+NN_plot = ggplot(df_NN, aes(Prediction, Reference, fill = Freq)) +
+  geom_tile() + 
+  geom_text(aes(label = Freq)) +
+  scale_fill_gradient(low = "white", high = "#009194") +
+  labs(title = "Neural Network", x = "Prediction", y = "Reference")
+
+grid.arrange(LDA_plot, KNN_plot, SVM_plot, RF_plot, NN_plot, acc_plot, nrow = 2, ncol = 3)
+
