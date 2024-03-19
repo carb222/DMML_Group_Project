@@ -73,28 +73,21 @@ training_indices <- sample(c(1:nrow(drug)), training_n)
 
 train <- drug_numeric[training_indices, ]
 test <- drug_numeric[-training_indices, ]
+
 #__________________________________________________________
 
 
-
-###EXPLORATORY ANALYSIS
-train
+##Exploratory Analysis----
 str(train)
 summary(train)
 
-
 # Provided values and their corresponding age ranges
-library(ggplot2)
-library(GGally)
 # Plotting the density plot with customized x-axis labels
 age_values <- c(-0.95197, -0.07854, 0.49788, 1.09449, 1.82213, 2.59171)
 age_ranges <- c("18-24", "25-34", "35-44", "45-54", "55-64", "65+")
 ggplot(train, aes(x = Age, colour = Merged_Amphet)) +
   geom_density() +
   scale_x_continuous(breaks = age_values, labels = age_ranges)
-
-
-
 
 
 # Provided values and their corresponding education levels
@@ -189,7 +182,7 @@ ggplot(train, aes(x = Merged_Amphet, y = SS, fill = Merged_Amphet)) +
   theme_minimal()
 
 
-####creating the test data again with normal columns 
+#creating the test data again with normal columns 
 drug <- read.csv("group_22.csv") 
 drug <- drug %>% filter(Semer=="CL0")
 drug$Merged_Amphet <- ifelse(drug$Amphet %in% c("CL0"), "Never Used",
@@ -209,13 +202,13 @@ cols <- c("ID", "Semer")
 drug_numeric <- drug %>% select(-one_of(cols)) %>% 
   relocate(Amphet, .before=Merged_Amphet)
 
-train <- drug_numeric[training_indices, ]
-test <- drug_numeric[-training_indices, ]
+train2 <- drug_numeric[training_indices, ]
+test2 <- drug_numeric[-training_indices, ]
 
 
 
-train$Ethnicity <- factor(train$Ethnicity)
-train$Merged_Amphet <- factor(train$Merged_Amphet, levels = c("Never Used", "Used in the Last Year", "Used Over a Year Ago"))
+train2$Ethnicity <- factor(train2$Ethnicity)
+train2$Merged_Amphet <- factor(train2$Merged_Amphet, levels = c("Never Used", "Used in the Last Year", "Used Over a Year Ago"))
 
 #mapping numeric values to ethnicities
 ethnicity_labels <- c("-0.50212" = "Asian",
@@ -226,12 +219,13 @@ ethnicity_labels <- c("-0.50212" = "Asian",
                       "0.11440" = "Other",
                       "-0.31685" = "White")
 
-ggplot(train, aes(x = as.factor(Ethnicity), fill = Merged_Amphet)) +
+ggplot(train2, aes(x = as.factor(Ethnicity), fill = Merged_Amphet)) +
   geom_bar(position = "fill") +
   scale_x_discrete(labels = function(x) ethnicity_labels[x]) + # Map numeric values to ethnicities
   scale_fill_manual(values = c("Never Used" = "blue", "Used in the Last Year" = "green", "Used Over a Year Ago" = "red")) +
   labs(title = "Amphetamine Usage by Ethnicity", x = "Ethnicity", y = "Proportion of drug usage") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 ###COUNTRY~PROPORTION
 #Mapping numeric values to countries
@@ -243,19 +237,20 @@ country_labels <- c("-0.09765" = "Australia",
                     "0.96082" = "UK",
                     "-0.57009" = "USA")
 
-ggplot(train, aes(x = as.factor(Country), fill = Merged_Amphet)) +
+ggplot(train2, aes(x = as.factor(Country), fill = Merged_Amphet)) +
   geom_bar(position = "fill") +
   scale_x_discrete(labels = function(x) country_labels[x]) + # Map numeric values to countries
   scale_fill_manual(values = c("Never Used" = "blue", "Used in the Last Year" = "green", "Used Over a Year Ago" = "red")) +
   labs(title = "Amphetamine Usage by Country", x = "Country", y = "Proportion of drug usage") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
 ###GENDER PROPORTION
 gender_labels <- c("0.48246" = "Female",
                    "-0.48246" = "Male")
 
-ggplot(train, aes(x = as.factor(Gender), fill = Merged_Amphet)) +
+ggplot(train2, aes(x = as.factor(Gender), fill = Merged_Amphet)) +
   geom_bar(position = "fill") +
   scale_x_discrete(labels = function(x) gender_labels[x]) + # Map numeric values to genders
   scale_fill_manual(values = c("Never Used" = "blue", "Used in the Last Year" = "green", "Used Over a Year Ago" = "red")) +
@@ -273,12 +268,13 @@ education_labels <- c("-2.43591" = "Left school before 16 years",
                       "1.16365" = "Masters degree",
                       "1.98437" = "Doctorate degree")
 
-ggplot(train, aes(x = as.factor(Education), fill = Merged_Amphet)) +
+ggplot(train2, aes(x = as.factor(Education), fill = Merged_Amphet)) +
   geom_bar(position = "fill") +
   scale_x_discrete(labels = function(x) education_labels[x]) + # Map numeric values to education levels
   scale_fill_manual(values = c("Never Used" = "blue", "Used in the Last Year" = "green", "Used Over a Year Ago" = "red")) +
   labs(title = "Amphetamine Usage by Education Level", x = "Education Level", y = "Proportion of drug usage") +
-  theme_minimal()
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
 ###AGE~PROPORTION
@@ -289,16 +285,17 @@ age_labels <- c("-0.95197" = "18-24",
                 "1.82213" = "55-64",
                 "2.59171" = "65+")
 
-ggplot(train, aes(x = as.factor(Age), fill = Merged_Amphet)) +
+ggplot(train2, aes(x = as.factor(Age), fill = Merged_Amphet)) +
   geom_bar(position = "fill") +
   scale_x_discrete(labels = function(x) age_labels[x]) + # Map numeric values to age groups
   scale_fill_manual(values = c("Never Used" = "blue", "Used in the Last Year" = "green", "Used Over a Year Ago" = "red")) +
   labs(title = "Amphetamine Usage by Age Group", x = "Age Group", y = "Proportion of drug usage") +
   theme_minimal()
 
-
+#__________________________________________________________
 
 ## LDA Method----
+set.seed(555)
 ### Creating Model ----
 data.lda <- lda(Merged_Amphet~. , data=train[,-25])
 data.pred.LDA <- predict(data.lda, test[,-25])
@@ -321,10 +318,11 @@ LDA_conf_matrix <- confusionMatrix(data.pred.LDA$class, test$Merged_Amphet)
 LDA_accuracy <- LDA_conf_matrix$overall["Accuracy"]
 cat("SVM Accuracy:", LDA_accuracy, "\n")
 
-
 #__________________________________________________________
 
+
 ## SVM Method ----
+set.seed(555)
 ### Parameter tunning ----
 #Create possible parameters
 cost_range <- c(0.1,1,10,12,100)
@@ -357,7 +355,7 @@ cat("SVM Accuracy:", SVM_accuracy, "\n")
 #__________________________________________________________
 
 
-## kNN Method ----
+## KNN Method ----
 ### Leave-One-Out Cross-Validation on 7 Classes----
 set.seed(555)
 K <- c(1:20)
