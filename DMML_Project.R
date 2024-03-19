@@ -398,6 +398,48 @@ cat("SVM Accuracy:", SVM_accuracy, "\n")
 
 
 ## Model Comparison----
+#
 
+# Specificity Plot
 
+df1 = data.frame(LDA_conf_matrix$byClass)
+df1 = tibble::rownames_to_column(df1, var = "Class")
+df1$Method = "LDA"
+df2 = data.frame(SVM_conf_matrix$byClass)
+df2 = tibble::rownames_to_column(df2, var = "Class")
+df2$Method = "SVM"
+df3 = data.frame(KNN_conf_matrix$byClass)
+df3 = tibble::rownames_to_column(df3, var = "Class")
+df3$Method = "KNN"
 
+appended_df <- rbind(df1, df2, df3)
+
+ggplot(appended_df, aes(x = Class, y = Sensitivity, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Sensitivity", x = "Class", y = "Values") +
+  theme_minimal()
+
+ggplot(appended_df, aes(x = Class, y = Specificity , fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Specificity", x = "Class", y = "Values") +
+  theme_minimal()
+
+ggplot(appended_df, aes(x = Class, y = Pos.Pred.Value, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Pos.Pred.Value", x = "Class", y = "Values") +
+  theme_minimal()
+
+ggplot(appended_df, aes(x = Class, y = Neg.Pred.Value, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Neg.Pred.Value", x = "Class", y = "Values") +
+  theme_minimal()
+
+ggplot(appended_df, aes(x = Class, y = Precision, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Precision", x = "Class", y = "Values") +
+  theme_minimal()
+
+ggplot(appended_df, aes(x = Class, y = F1 , fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "F1", x = "Class", y = "Values") +
+  theme_minimal()
