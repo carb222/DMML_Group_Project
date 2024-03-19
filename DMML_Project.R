@@ -296,6 +296,19 @@ ggplot(train, aes(x = as.factor(Age), fill = Merged_Amphet)) +
   labs(title = "Amphetamine Usage by Age Group", x = "Age Group", y = "Proportion of drug usage") +
   theme_minimal()
 
+# Correlation matrix of personality measurements 
+library(corrplot)
+
+correlation_matrix <- cor(train[, c("Nscore", "Escore", "Oscore", "Ascore", "Cscore", "Impulsive", "SS")])
+correlation_matrix
+
+
+corrplot(correlation_matrix, method="circle", addCoef.col = "black", 
+         tl.cex = 0.7,            
+         cl.cex = 0.7,            
+         tl.srt = 0 )            
+
+                   
 
 
 ## LDA Method----
