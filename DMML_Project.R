@@ -12,9 +12,9 @@ library(MASS)
 library(e1071)
 library(caret)
 library(fastDummies)
-library(dplyr)
-library(tidyr)
 library(class)
+library(tidyr)
+library(dplyr)
 
 #__________________________________________________________
 
@@ -168,7 +168,15 @@ abline(v = which.max(cv.corr), lty = 2, col = "blue")
 ### Fitting 5-NN model----
 k.opt <- which.max(cv.corr)
 test.pred <- knn(train[, 1:24], test[, 1:24], train[, 26], k = k.opt)
-mean(test[, 26] == test.pred)
 
+### KNN Prediction Rate----
+# Create confusion matrix
+KNN_conf_matrix <- confusionMatrix(test.pred, test$Merged_Amphet)
+# Extract accuracy
+KNN_accuracy <- KNN_conf_matrix$overall["Accuracy"]
+cat("SVM Accuracy:", SVM_accuracy, "\n")
+
+
+## Model Comparison----
 
 
