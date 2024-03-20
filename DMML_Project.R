@@ -68,7 +68,7 @@ cols <- c("ID", "Semer")
 drug_numeric <- drug[, -which(names(drug) %in% cols)]
 drug_numeric <- drug_numeric %>% 
   relocate(Amphet, .before=Merged_Amphet)
-colnames(drug_numeric)
+
 
 #__________________________________________________________
 
