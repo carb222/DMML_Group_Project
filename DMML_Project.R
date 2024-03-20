@@ -65,9 +65,10 @@ drug$Merged_Amphet <- as.factor(drug$Merged_Amphet)
 
 #remove ID and fake drug 
 cols <- c("ID", "Semer")
-drug_numeric <- drug %>% select(-one_of(cols)) %>% 
+drug_numeric <- drug[, -which(names(drug) %in% cols)]
+drug_numeric <- drug_numeric %>% 
   relocate(Amphet, .before=Merged_Amphet)
-
+colnames(drug_numeric)
 
 #__________________________________________________________
 
