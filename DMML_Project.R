@@ -68,7 +68,6 @@ cols <- c("ID", "Semer")
 drug_numeric <- drug[, -which(names(drug) %in% cols)]
 drug_numeric <- drug_numeric %>% 
   relocate(Amphet, .before=Merged_Amphet)
-colnames(drug_numeric)
 
 #__________________________________________________________
 
@@ -204,7 +203,8 @@ training_indices <- sample(c(1:nrow(drug)), training_n)
 
 #remove ID and fake drug 
 cols <- c("ID", "Semer")
-drug_numeric <- drug %>% select(-one_of(cols)) %>% 
+drug_numeric <- drug[, -which(names(drug) %in% cols)]
+drug_numeric <- drug_numeric %>% 
   relocate(Amphet, .before=Merged_Amphet)
 
 train2 <- drug_numeric[training_indices, ]
