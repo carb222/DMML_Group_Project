@@ -77,7 +77,16 @@ training_indices <- sample(c(1:nrow(drug)), training_n)
 
 train <- drug_numeric[training_indices, ]
 test <- drug_numeric[-training_indices, ]
+train.1 <- train %>% filter(Merged_Amphet=="Never Used")
+train.2 <- train %>% filter(Merged_Amphet=="Used in the Last Year")
+sample.2 <- sample(c(1:nrow(train.2)), nrow(train.1)-nrow(train.2),replace=TRUE)
+train.3 <- train %>% filter(Merged_Amphet=="Used Over a Year Ago")
+sample.3 <- sample(c(1:nrow(train.3)), nrow(train.1)-nrow(train.3),replace=TRUE)
 
+train.2 <- rbind(train.2, train.2[sample.2,])
+train.3 <- rbind(train.3, train.3[sample.3,])
+
+train <- rbind(train.1, train.2,train.3)
 #__________________________________________________________
 
 
