@@ -131,68 +131,74 @@ ggplot(train, aes(x = as.factor(Merged_Amphet), y = Age, fill = as.factor(Gender
 
 
 
-ggplot(train, aes(x = Merged_Amphet, y = Nscore, fill = Merged_Amphet)) +
+
+plot1 <- ggplot(train, aes(x = Merged_Amphet, y = Nscore, fill = Merged_Amphet)) +
   geom_boxplot() +  
-  labs(title = "Distribution of Nscore by Merged Amphet",
+  labs(title = "Distribution of Nscore by Drug Usage",
        x = "Merged Amphet",
        y = "Nscore") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
 
 
-
-ggplot(train, aes(x = Merged_Amphet, y = Escore, fill = Merged_Amphet)) +
+plot2 <- ggplot(train, aes(x = Merged_Amphet, y = Escore, fill = Merged_Amphet)) +
   geom_boxplot() +  
-  labs(title = "Distribution of Nscore by Merged Amphet",
+  labs(title = "Distribution of Escore by Drug Usage",
        x = "Merged Amphet",
        y = "Escore") +
-  theme_minimal()
+  theme_minimal() + 
+theme(axis.text.x = element_blank())
 
 
-ggplot(train, aes(x = Merged_Amphet, y = Oscore, fill = Merged_Amphet)) +
+plot3 <- ggplot(train, aes(x = Merged_Amphet, y = Oscore, fill = Merged_Amphet)) +
   geom_boxplot() +  
-  labs(title = "Distribution of Nscore by Merged Amphet",
+  labs(title = "Distribution of Oscore by Drug Usage",
        x = "Merged Amphet",
        y = "Oscore") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
 
 
-ggplot(train, aes(x = Merged_Amphet, y = Ascore, fill = Merged_Amphet)) +
+plot4 <- ggplot(train, aes(x = Merged_Amphet, y = Ascore, fill = Merged_Amphet)) +
   geom_boxplot() +  
-  labs(title = "Distribution of Nscore by Merged Amphet",
+  labs(title = "Distribution of Ascore by Drug Usage",
        x = "Merged Amphet",
        y = "Ascore") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_blank()) 
+
+  
 
 
-ggplot(train, aes(x = Merged_Amphet, y = Ascore, fill = Merged_Amphet)) +
+plot5 <- ggplot(train, aes(x = Merged_Amphet, y = Cscore, fill = Merged_Amphet)) +
   geom_boxplot() +  
-  labs(title = "Distribution of Nscore by Merged Amphet",
-       x = "Merged Amphet",
-       y = "Ascore") +
-  theme_minimal()
-
-
-ggplot(train, aes(x = Merged_Amphet, y = Cscore, fill = Merged_Amphet)) +
-  geom_boxplot() +  
-  labs(title = "Distribution of Nscore by Merged Amphet",
+  labs(title = "Distribution of Cscore by Merged Amphet",
        x = "Merged Amphet",
        y = "Cscore") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
 
-ggplot(train, aes(x = Merged_Amphet, y = Impulsive, fill = Merged_Amphet)) +
+plot6 <- ggplot(train, aes(x = Merged_Amphet, y = Impulsive, fill = Merged_Amphet)) +
   geom_boxplot() +  
-  labs(title = "Distribution of Nscore by Merged Amphet",
+  labs(title = "Distribution of Impulsiveness by Merged Amphet",
        x = "Merged Amphet",
        y = "Impulsive") +
   theme_minimal()
 
 
-ggplot(train, aes(x = Merged_Amphet, y = SS, fill = Merged_Amphet)) +
+plot7 <- ggplot(train, aes(x = Merged_Amphet, y = SS, fill = Merged_Amphet)) +
   geom_boxplot() +  
-  labs(title = "Distribution of Nscore by Merged Amphet",
+  labs(title = "Distribution of Sensation seeing by Merged Amphet",
        x = "Merged Amphet",
        y = "SS") +
   theme_minimal()
+
+combo1 <- plot1 + plot2 + plot3 + plot4 + plot5
+combo1
+
+combo2 <- plot6 + plot7
+combo2
+
 
 
 #creating the test data again with normal columns 
