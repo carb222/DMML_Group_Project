@@ -348,6 +348,10 @@ training_indices <- sample(c(1:nrow(drug)), training_n)
 train <- drug_numeric[training_indices, ]
 test <- drug_numeric[-training_indices, ]
 
+### Normal Sampling----
+knn_train <- train
+knn_test <- test
+
 ### Oversampling----
 train.1 <- train %>% filter(Merged_Amphet=="Never Used")
 train.2 <- train %>% filter(Merged_Amphet=="Used in the Last Year")
@@ -536,36 +540,38 @@ cat("SVM Accuracy:", SVM_accuracy, "\n")
 ## KNN Method ----
 ### Leave-One-Out Cross-Validation on 7 Classes----
 set.seed(555)
-K <- c(1:20)
+K <- c(1:50)
 cv.corr <- c()
 for (k in K){
-  train.pred <- knn.cv(train[, 1:21], train[, 22], k = k)
-  cv.corr[k] <- mean(train[, 22] == train.pred)
+  train.pred <- knn.cv(knn_train[, 1:21], knn_train[, 22], k = k)
+  cv.corr[k] <- mean(knn_train[, 22] == train.pred)
 }
 plot(K, cv.corr, type = "b", ylab = "Leave-One-Out Cross-Validation CCR")
 abline(v = which.max(cv.corr), lty = 2, col = "blue")
 
-### Fitting 15-NN model----
+### Fitting 44-NN model----
 k.opt <- which.max(cv.corr)
-test.pred <- knn(train[, 1:21], test[, 1:21], train[, 22], k = k.opt)
+test.pred <- knn(knn_train[, 1:21], knn_test[, 1:21], knn_train[, 22], k = k.opt)
 # Test CCR
-mean(test[, 22] == test.pred)
+mean(knn_test[, 22] == test.pred)
 
 
 ### Leave-One-Out Cross Validation on 3 Classes----
 set.seed(555)
-K <- c(1:15)
+K <- c(1:50)
 cv.corr <- c()
 for (k in K){
-  train.pred <- knn.cv(train[, 1:21], train[, 23], k = k)
-  cv.corr[k] <- mean(train[, 23] == train.pred)
+  train.pred <- knn.cv(knn_train[, 1:21], knn_train[, 23], k = k)
+  cv.corr[k] <- mean(knn_train[, 23] == train.pred)
 }
 plot(K, cv.corr, type = "b", ylab = "Leave-One-Out Cross-Validation CCR")
 abline(v = which.max(cv.corr), lty = 2, col = "blue")
 
-### Fitting 5-NN model----
+### Fitting 38-NN model----
 k.opt <- which.max(cv.corr)
-test.pred <- knn(train[, 1:21], test[, 1:21], train[, 23], k = k.opt)
+test.pred <- knn(knn_train[, 1:21], knn_test[, 1:21], knn_train[, 23], k = k.opt)
+# Test CCR
+mean(knn_test[, 23] == test.pred)
 
 ### KNN Prediction Rate----
 # Create confusion matrix
