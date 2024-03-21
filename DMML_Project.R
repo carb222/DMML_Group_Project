@@ -525,7 +525,7 @@ cat("SVM Accuracy:", SVM_accuracy, "\n")
 ## KNN Method ----
 ### Leave-One-Out Cross-Validation on 7 Classes----
 set.seed(555)
-K <- c(1:20)
+K <- c(1:15)
 cv.corr <- c()
 for (k in K){
   train.pred <- knn.cv(train[, 1:21], train[, 22], k = k)
@@ -534,7 +534,7 @@ for (k in K){
 plot(K, cv.corr, type = "b", ylab = "Leave-One-Out Cross-Validation CCR")
 abline(v = which.max(cv.corr), lty = 2, col = "blue")
 
-### Fitting 15-NN model----
+### Fitting 7-NN model----
 k.opt <- which.max(cv.corr)
 test.pred <- knn(train[, 1:21], test[, 1:21], train[, 22], k = k.opt)
 # Test CCR
@@ -552,9 +552,10 @@ for (k in K){
 plot(K, cv.corr, type = "b", ylab = "Leave-One-Out Cross-Validation CCR")
 abline(v = which.max(cv.corr), lty = 2, col = "blue")
 
-### Fitting 5-NN model----
+### Fitting 9-NN model----
 k.opt <- which.max(cv.corr)
 test.pred <- knn(train[, 1:21], test[, 1:21], train[, 23], k = k.opt)
+mean(test[, 23] == test.pred)
 
 ### KNN Prediction Rate----
 # Create confusion matrix
