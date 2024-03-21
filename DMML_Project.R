@@ -672,4 +672,3 @@ NN_plot = ggplot(df_NN, aes(Prediction, Reference, fill = Freq)) +
   labs(title = "Neural Network", x = "Prediction", y = "Reference")
 
 grid.arrange(LDA_plot, KNN_plot, SVM_plot, RF_plot, NN_plot, acc_plot, nrow = 2, ncol = 3)
-
