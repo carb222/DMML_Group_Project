@@ -20,6 +20,8 @@ library(randomForest)
 library(gridExtra)
 library(tidyr)
 library(dplyr)
+library(patchwork)
+library(knitr)
 
 #__________________________________________________________
 
@@ -228,13 +230,22 @@ test2 <- drug_numeric[-training_indices, ]
 train2$Ethnicity <- factor(train2$Ethnicity)
 train2$Merged_Amphet <- factor(train2$Merged_Amphet, levels = c("Never Used", "Used in the Last Year", "Used Over a Year Ago"))
 
+#Summary Statistics of numerical variables
+
+selected_columns <- train2[, c("Nscore", "Escore", "Oscore", "Ascore", "Cscore", "Impulsive", "SS", "Merged_Amphet")]
+summary_table <- summary(selected_columns)
+summary_table
+
+
+
+
 #mapping numeric values to ethnicities
 ethnicity_labels <- c("-0.50212" = "Asian",
                       "-1.10702" = "Black",
                       "1.90725" = "Mixed-Black/Asian",
-                      "0.12600" = "Mixed-White/Asian",
+                      "0.126" = "Mixed-White/Asian",
                       "-0.22166" = "Mixed-White/Black",
-                      "0.11440" = "Other",
+                      "0.1144" = "Other",
                       "-0.31685" = "White")
 
 ggplot(train2, aes(x = as.factor(Ethnicity), fill = Merged_Amphet)) +
@@ -277,7 +288,7 @@ ggplot(train2, aes(x = as.factor(Gender), fill = Merged_Amphet)) +
 
 ####EDUCATION~PROPORTION
 education_labels <- c("-2.43591" = "Left school before 16 years",
-                      "-1.73790" = "Left school at 16 years",
+                      "-1.7379" = "Left school at 16 years",
                       "-1.43719" = "Left school at 17 years",
                       "-1.22751" = "Left school at 18 years",
                       "-0.61113" = "Some college or university, no certificate or degree",
