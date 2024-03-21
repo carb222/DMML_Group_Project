@@ -505,7 +505,7 @@ for (k in K){
 plot(K, cv.corr, type = "b", ylab = "Leave-One-Out Cross-Validation CCR")
 abline(v = which.max(cv.corr), lty = 2, col = "blue")
 
-### Fitting 5-NN model----
+### Fitting kNN model----
 k.opt <- which.max(cv.corr)
 test.pred <- knn(train[, 1:24], test[, 1:24], train[, 26], k = k.opt)
 # Test CCR
