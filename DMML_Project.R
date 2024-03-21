@@ -71,22 +71,13 @@ drug_numeric <- drug_numeric %>%
 
 #__________________________________________________________
 
-## Split into training and testing ----
+### Split into training and testing ----
 training_n <- floor(0.8*nrow(drug))
 training_indices <- sample(c(1:nrow(drug)), training_n)
 
 train <- drug_numeric[training_indices, ]
 test <- drug_numeric[-training_indices, ]
-train.1 <- train %>% filter(Merged_Amphet=="Never Used")
-train.2 <- train %>% filter(Merged_Amphet=="Used in the Last Year")
-sample.2 <- sample(c(1:nrow(train.2)), nrow(train.1)-nrow(train.2),replace=TRUE)
-train.3 <- train %>% filter(Merged_Amphet=="Used Over a Year Ago")
-sample.3 <- sample(c(1:nrow(train.3)), nrow(train.1)-nrow(train.3),replace=TRUE)
 
-train.2 <- rbind(train.2, train.2[sample.2,])
-train.3 <- rbind(train.3, train.3[sample.3,])
-
-train <- rbind(train.1, train.2,train.3)
 #__________________________________________________________
 
 
@@ -113,8 +104,8 @@ education_levels <- c("Left school before 16 years", "Left school at 16 years", 
 ggplot(train, aes(x = Education, colour = Merged_Amphet)) +
   geom_density() +
   scale_x_continuous(breaks = education_values, labels = education_levels)+
-theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-  scale_x_continuous(breaks = age_values, labels = age_ranges) 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+scale_x_continuous(breaks = age_values, labels = age_ranges) 
 
 
 
@@ -126,7 +117,7 @@ ggplot(train, aes(x = as.factor(Merged_Amphet), y = Age, fill = as.factor(Gender
   geom_boxplot() +
   labs(x = "Drug consumption", y = "Age", fill = "Gender") +
   scale_y_continuous(breaks = age_values, labels = age_ranges) +
- scale_fill_discrete(labels = c("Male" , "Female"))
+  scale_fill_discrete(labels = c("Male" , "Female"))
 
 
 
@@ -304,6 +295,61 @@ ggplot(train2, aes(x = as.factor(Age), fill = Merged_Amphet)) +
   labs(title = "Amphetamine Usage by Age Group", x = "Age Group", y = "Proportion of drug usage") +
   theme_minimal()
 
+### Read data ----
+drug <- read.csv("group_22.csv")
+
+### Data tidying ----
+#Eliminate over-claimers
+drug <- drug %>% filter(Semer=="CL0")
+
+#Since these variables do not have an inherent hierarchy 
+#convert Ethnicity and Country columns to dummies
+drug$Country <- ifelse(drug$Country==-0.09765,"Australia",
+                       ifelse(drug$Country==0.24923,"Canada",
+                              ifelse(drug$Country==-0.46841,"New_Zealand",
+                                     ifelse(drug$Country==-0.28519,"Other",
+                                            ifelse(drug$Country==0.21128,"ROI",
+                                                   ifelse(drug$Country==0.96082,"UK",
+                                                          ifelse(drug$Country==-0.57009,"USA","Unknown")))))))
+levels(factor(drug$Country))
+
+drug$Ethnicity <- ifelse(drug$Ethnicity==-0.50212,"Asian",
+                         ifelse(drug$Ethnicity==-1.10702,"Black",
+                                ifelse(drug$Ethnicity==1.90725,"Mixed_Black_Asian",
+                                       ifelse(drug$Ethnicity==0.12600,"Mixed_White_Asian",
+                                              ifelse(drug$Ethnicity==-0.22166,"Mixed_White_Black",
+                                                     ifelse(drug$Ethnicity==0.11440,"Other",
+                                                            ifelse(drug$Ethnicity==-0.31685,"White","Unknown")))))))
+
+levels(factor(drug$Ethnicity))
+
+drug <- dummy_cols(drug,c("Country", "Ethnicity"), remove_selected_columns=TRUE)
+
+
+#target variable to factor
+drug$Merged_Amphet <- ifelse(drug$Amphet %in% c("CL0"), "Never Used",
+                             ifelse(drug$Amphet %in% c("CL1", "CL2"), "Used Over a Year Ago",
+                                    "Used in the Last Year"))
+drug$Amphet <- as.factor(drug$Amphet)
+drug$Merged_Amphet <- as.factor(drug$Merged_Amphet)
+
+#remove ID and fake drug 
+cols <- c("ID", "Semer","Escore", "Cscore", "Ascore")
+drug_numeric <- drug[, -which(names(drug) %in% cols)]
+drug_numeric <- drug_numeric %>% 
+  relocate(Amphet, .before=Merged_Amphet)
+
+#__________________________________________________________
+
+### Split into training and testing ----
+training_n <- floor(0.8*nrow(drug))
+training_indices <- sample(c(1:nrow(drug)), training_n)
+
+train <- drug_numeric[training_indices, ]
+test <- drug_numeric[-training_indices, ]
+
+#__________________________________________________________
+
 #__________________________________________________________
 
 ## Neural Network Method----
@@ -317,17 +363,17 @@ nn_train <- train ; nn_test <- test
 #nn_test <- predict(my.pca, nn_test[,-c(25,26)])[,1:18] %>% as.data.frame() %>% mutate(Merged_Amphet = nn_test$Merged_Amphet)
 
 #checking correlation of covariates against target
-corr <- abs(cor(nn_train[,-c(25)]%>%mutate(Merged_Amphet=as.numeric(as.numeric(nn_train$Merged_Amphet))))[-25,25]) %>% as.data.frame()
+corr <- abs(cor(nn_train[,-c(22)]%>%mutate(Merged_Amphet=as.numeric(as.numeric(nn_train$Merged_Amphet))))[-22,22]) %>% as.data.frame()
 colnames(corr) <- c("Abs_Cor")
 corr <- cbind(var = rownames(corr), corr)
 rownames(corr) <- 1:nrow(corr)
 corr %>% arrange(desc(Abs_Cor)) %>% head(10)
 
 # min-max normalisation
-maxs <- apply(nn_train[,-c(25,26)], 2, max)
-mins <- apply(nn_train[,-c(25,26)], 2, min)
-nn_train[,-c(25,26)] <- as.data.frame(scale(nn_train[,-c(25,26)],center = mins, scale = maxs - mins))
-nn_test[,-c(25,26)] <- as.data.frame(scale(nn_test[,-c(25,26)],center = mins, scale = maxs - mins))
+maxs <- apply(nn_train[,-c(22,23)], 2, max)
+mins <- apply(nn_train[,-c(22,23)], 2, min)
+nn_train[,-c(22,23)] <- as.data.frame(scale(nn_train[,-c(22,23)],center = mins, scale = maxs - mins))
+nn_test[,-c(22,23)] <- as.data.frame(scale(nn_test[,-c(22,23)],center = mins, scale = maxs - mins))
 
 
 #train neural network
@@ -345,7 +391,7 @@ sample_size <- floor(0.2*nrow(nn_train))
 sample_indices <- sample(c(1:nrow(nn_train)), 100)
 
 nn=neuralnet(Merged_Amphet~.,
-           data=nn_train[sample_indices,-25], hidden=c(50,50,50,50,50),rep=1,err.fct = "ce",stepmax=150000,lifesign="full",act.fct="logistic",linear.output=FALSE)
+             data=nn_train[sample_indices,-22], hidden=c(50,50,50,50,50),rep=1,err.fct = "ce",stepmax=150000,lifesign="full",act.fct="logistic",linear.output=FALSE)
 print(nn)
 ###Fitting Neural Network----
 #Fit Neural Network with smaller samples
@@ -355,9 +401,9 @@ for (i in 1:trials){
   print(i)
   sample_size <- 100
   indices <- sample(c(1:nrow(nn_train)), sample_size)
-  variables_out <- append(sample(1:24,5),25)
+  variables_out <- append(sample(1:21,5),22)
   neural_nets[i] <- list(neuralnet(Merged_Amphet~.,
-                              data=nn_train[indices,-variables_out], hidden=c(20,15),rep=1,err.fct = "ce",stepmax=500000,lifesign="full",act.fct="logistic",linear.output=FALSE))
+                                   data=nn_train[indices,-variables_out], hidden=c(20,15),rep=1,err.fct = "ce",stepmax=500000,lifesign="full",act.fct="logistic",linear.output=FALSE))
 }
 
 ###Predict and evaluate training and testing accuracy----
@@ -401,7 +447,7 @@ cat("Neural Network Accuracy:", NN_accuracy, "\n")
 ## Random Forest Method----
 
 ###Fitting Random Forest----
-rf <- randomForest(Merged_Amphet~., data=nn_train[,-25], ntree=200, replace=TRUE, importance=TRUE)
+rf <- randomForest(Merged_Amphet~., data=nn_train[,-22], ntree=200, replace=TRUE, importance=TRUE)
 
 ####Prediction----
 mean(predict(rf,nn_train) == nn_train$Merged_Amphet)
@@ -418,8 +464,8 @@ cat("Random Forest Accuracy:", NN_accuracy, "\n")
 ## LDA Method----
 set.seed(555)
 ### Creating Model ----
-data.lda <- lda(Merged_Amphet~. , data=train[,-25])
-data.pred.LDA <- predict(data.lda, test[,-25])
+data.lda <- lda(Merged_Amphet~. , data=train[,-22])
+data.pred.LDA <- predict(data.lda, test[,-22])
 dataset <- data.frame(Type=test$Merged_Amphet, lda=data.pred.LDA$x)
 
 ### Plots of LDAs----
@@ -450,10 +496,10 @@ cost_range <- c(0.1,1,10,12,100)
 degree_range <- 1:5
 gamma_range <- c(0.001,0.01,0.015,0.1,1)
 # Tune Polynomial SVM
-SVM_poly <- tune.svm(Merged_Amphet~., data=train[,-25], type="C-classification", kernel="polynomial", cost=cost_range, degree=degree_range)
+SVM_poly <- tune.svm(Merged_Amphet~., data=train[,-22], type="C-classification", kernel="polynomial", cost=cost_range, degree=degree_range)
 summary(SVM_poly)
 #Tune Radial SVM
-SVM_RBF <- tune.svm(Merged_Amphet~., data=train[,-25], type="C-classification", kernel="radial", cost=cost_range, gamma=gamma_range)
+SVM_RBF <- tune.svm(Merged_Amphet~., data=train[,-22], type="C-classification", kernel="radial", cost=cost_range, gamma=gamma_range)
 summary(SVM_RBF)
 #Best parameters
 SVM_poly$best.parameters
@@ -463,8 +509,8 @@ cost <- SVM_RBF$best.parameters[, "cost"]
 #RBF showed less error
 
 ###Creating Model----
-SVM_final <- svm(Merged_Amphet~., data=train[,-25], type="C-classification", kernel="radial", cost=cost, gamma_range=gamma)
-test.pred <- predict(SVM_final,test[,-25])
+SVM_final <- svm(Merged_Amphet~., data=train[,-22], type="C-classification", kernel="radial", cost=cost, gamma_range=gamma)
+test.pred <- predict(SVM_final,test[,-22])
 
 ### SVM Prediction Rate----
 # Create confusion matrix
@@ -482,17 +528,17 @@ set.seed(555)
 K <- c(1:20)
 cv.corr <- c()
 for (k in K){
-  train.pred <- knn.cv(train[, 1:24], train[, 25], k = k)
-  cv.corr[k] <- mean(train[, 25] == train.pred)
+  train.pred <- knn.cv(train[, 1:21], train[, 22], k = k)
+  cv.corr[k] <- mean(train[, 22] == train.pred)
 }
 plot(K, cv.corr, type = "b", ylab = "Leave-One-Out Cross-Validation CCR")
 abline(v = which.max(cv.corr), lty = 2, col = "blue")
 
 ### Fitting 15-NN model----
 k.opt <- which.max(cv.corr)
-test.pred <- knn(train[, 1:24], test[, 1:24], train[, 25], k = k.opt)
+test.pred <- knn(train[, 1:21], test[, 1:21], train[, 22], k = k.opt)
 # Test CCR
-mean(test[, 25] == test.pred)
+mean(test[, 22] == test.pred)
 
 
 ### Leave-One-Out Cross Validation on 3 Classes----
@@ -500,15 +546,15 @@ set.seed(555)
 K <- c(1:15)
 cv.corr <- c()
 for (k in K){
-  train.pred <- knn.cv(train[, 1:24], train[, 26], k = k)
-  cv.corr[k] <- mean(train[, 26] == train.pred)
+  train.pred <- knn.cv(train[, 1:21], train[, 23], k = k)
+  cv.corr[k] <- mean(train[, 23] == train.pred)
 }
 plot(K, cv.corr, type = "b", ylab = "Leave-One-Out Cross-Validation CCR")
 abline(v = which.max(cv.corr), lty = 2, col = "blue")
 
 ### Fitting 5-NN model----
 k.opt <- which.max(cv.corr)
-test.pred <- knn(train[, 1:24], test[, 1:24], train[, 26], k = k.opt)
+test.pred <- knn(train[, 1:21], test[, 1:21], train[, 23], k = k.opt)
 
 ### KNN Prediction Rate----
 # Create confusion matrix
