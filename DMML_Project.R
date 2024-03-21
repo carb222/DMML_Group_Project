@@ -348,6 +348,17 @@ training_indices <- sample(c(1:nrow(drug)), training_n)
 train <- drug_numeric[training_indices, ]
 test <- drug_numeric[-training_indices, ]
 
+### Oversampling----
+train.1 <- train %>% filter(Merged_Amphet=="Never Used")
+train.2 <- train %>% filter(Merged_Amphet=="Used in the Last Year")
+sample.2 <- sample(c(1:nrow(train.2)), nrow(train.1)-nrow(train.2),replace=TRUE)
+train.3 <- train %>% filter(Merged_Amphet=="Used Over a Year Ago")
+sample.3 <- sample(c(1:nrow(train.3)), nrow(train.1)-nrow(train.3),replace=TRUE)
+
+train.2 <- rbind(train.2, train.2[sample.2,])
+train.3 <- rbind(train.3, train.3[sample.3,])
+
+train <- rbind(train.1, train.2,train.3)
 #__________________________________________________________
 
 #__________________________________________________________
@@ -525,7 +536,7 @@ cat("SVM Accuracy:", SVM_accuracy, "\n")
 ## KNN Method ----
 ### Leave-One-Out Cross-Validation on 7 Classes----
 set.seed(555)
-K <- c(1:15)
+K <- c(1:20)
 cv.corr <- c()
 for (k in K){
   train.pred <- knn.cv(train[, 1:21], train[, 22], k = k)
@@ -534,7 +545,7 @@ for (k in K){
 plot(K, cv.corr, type = "b", ylab = "Leave-One-Out Cross-Validation CCR")
 abline(v = which.max(cv.corr), lty = 2, col = "blue")
 
-### Fitting 7-NN model----
+### Fitting 15-NN model----
 k.opt <- which.max(cv.corr)
 test.pred <- knn(train[, 1:21], test[, 1:21], train[, 22], k = k.opt)
 # Test CCR
@@ -552,10 +563,9 @@ for (k in K){
 plot(K, cv.corr, type = "b", ylab = "Leave-One-Out Cross-Validation CCR")
 abline(v = which.max(cv.corr), lty = 2, col = "blue")
 
-### Fitting 9-NN model----
+### Fitting 5-NN model----
 k.opt <- which.max(cv.corr)
 test.pred <- knn(train[, 1:21], test[, 1:21], train[, 23], k = k.opt)
-mean(test[, 23] == test.pred)
 
 ### KNN Prediction Rate----
 # Create confusion matrix
