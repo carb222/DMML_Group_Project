@@ -509,7 +509,7 @@ abline(v = which.max(cv.corr), lty = 2, col = "blue")
 k.opt <- which.max(cv.corr)
 test.pred <- knn(train[, 1:24], test[, 1:24], train[, 26], k = k.opt)
 # Test CCR
-mean(test[, 24] == test.pred)
+mean(test[, 26] == test.pred)
 
 ### KNN Prediction Rate----
 # Create confusion matrix
