@@ -369,20 +369,8 @@ train <- rbind(train.1, train.2,train.3)
 
 ## Neural Network Method----
 
-## PCA since the model  training is too slow
+#duplicate train and test
 nn_train <- train ; nn_test <- test
-#my.pca <- princomp(nn_train[,-c(25,26)], cor=TRUE) #correlation-based PCA
-#summary(my.pca) #the first 18 components contain 90% of the variance
-
-#nn_train <- my.pca$scores[,1:18] %>% as.data.frame() %>% mutate(Merged_Amphet = nn_train$Merged_Amphet)
-#nn_test <- predict(my.pca, nn_test[,-c(25,26)])[,1:18] %>% as.data.frame() %>% mutate(Merged_Amphet = nn_test$Merged_Amphet)
-
-#checking correlation of covariates against target
-corr <- abs(cor(nn_train[,-c(22)]%>%mutate(Merged_Amphet=as.numeric(as.numeric(nn_train$Merged_Amphet))))[-22,22]) %>% as.data.frame()
-colnames(corr) <- c("Abs_Cor")
-corr <- cbind(var = rownames(corr), corr)
-rownames(corr) <- 1:nrow(corr)
-corr %>% arrange(desc(Abs_Cor)) %>% head(10)
 
 # min-max normalisation
 maxs <- apply(nn_train[,-c(22,23)], 2, max)
@@ -390,60 +378,25 @@ mins <- apply(nn_train[,-c(22,23)], 2, min)
 nn_train[,-c(22,23)] <- as.data.frame(scale(nn_train[,-c(22,23)],center = mins, scale = maxs - mins))
 nn_test[,-c(22,23)] <- as.data.frame(scale(nn_test[,-c(22,23)],center = mins, scale = maxs - mins))
 
-
 #train neural network
 softplus <- function(x) log(1+exp(x))
 
-
-#nn=neuralnet(Merged_Amphet~Age+Gender+Education+Nscore+Escore+Oscore+
-#               Ascore+Cscore+Impulsive+Impulsive+SS+
-#               Country_Australia+Country_Canada+Country_New_Zealand+Country_Other+Country_ROI+Country_UK+Country_USA+
-#              Ethnicity_Asian+Ethnicity_Black+Ethnicity_Mixed_Black_Asian+Ethnicity_Mixed_White_Asian+Ethnicity_Mixed_White_Black+Ethnicity_Other+Ethnicity_White,
-#             data=nn_train, hidden=c(2,2,2,2,2,2,2,2),rep=10,err.fct = "sse",lifesign="full",act.fct="tanh",linear.output=FALSE)
-#SS+Country_UK+Impulsive+Country_USA+Oscore+Gender+Cscore+Education+Ascore+Age+Ethnicity_Black
-
-sample_size <- floor(0.2*nrow(nn_train))
-sample_indices <- sample(c(1:nrow(nn_train)), 100)
+sample_size <- floor(.8*nrow(nn_train))
+sample_indices <- sample(c(1:nrow(nn_train)), sample_size)
 
 nn=neuralnet(Merged_Amphet~.,
-             data=nn_train[sample_indices,-22], hidden=c(50,50,50,50,50),rep=1,err.fct = "ce",stepmax=150000,lifesign="full",act.fct="logistic",linear.output=FALSE)
-print(nn)
-###Fitting Neural Network----
-#Fit Neural Network with smaller samples
-trials <- 100
-neural_nets <- list()
-for (i in 1:trials){
-  print(i)
-  sample_size <- 100
-  indices <- sample(c(1:nrow(nn_train)), sample_size)
-  variables_out <- append(sample(1:21,5),22)
-  neural_nets[i] <- list(neuralnet(Merged_Amphet~.,
-                                   data=nn_train[indices,-variables_out], hidden=c(20,15),rep=1,err.fct = "ce",stepmax=500000,lifesign="full",act.fct="logistic",linear.output=FALSE))
-}
+             data=nn_train[sample_indices,-22], hidden=c(50,50),rep=1,err.fct="ce",lifesign="full",act.fct="logistic",linear.output=FALSE)
 
 ###Predict and evaluate training and testing accuracy----
 #Training accuracy
-super_pred <- function(model_list, data){
-  final_probs <- matrix(data=rep(FALSE,3*nrow(data)),ncol=3,nrow=nrow(data))
-  for(i in 1:length(model_list)){
-    model <- model_list[[i]]
-    prediction <- predict(model, data)
-    prediction <- prediction == apply(prediction,1,max)
-    final_probs = final_probs + prediction
-  }
-  final_probs <- final_probs/length(model_list)
-  final_probs
-}
-
-
 nn_train_pred <-
-  nn_train %>% mutate(pred = max.col(super_pred(neural_nets, nn_train))) %>% 
+  nn_train %>% mutate(pred = max.col(predict(nn, nn_train))) %>% 
   mutate(accuracy= pred==as.numeric(nn_train$Merged_Amphet))
-mean(nn_train_pred$accuracy)
+cat("Neural Network Training Accuracy:", mean(nn_train_pred$accuracy), "\n")
 
 ###Testing accuracy----
 nn_test_pred <-
-  nn_test %>% mutate(pred = max.col(super_pred(neural_nets, nn_test))) %>% 
+  nn_test %>% mutate(pred = max.col(predict(nn, nn_test))) %>% 
   mutate(accuracy= pred==as.numeric(nn_test$Merged_Amphet))
 
 nn_test_pred$pred <- factor(nn_test_pred$pred,
@@ -454,7 +407,7 @@ nn_test_pred$pred <- factor(nn_test_pred$pred,
 NN_conf_matrix <- confusionMatrix(nn_test_pred$pred, nn_test_pred$Merged_Amphet)
 # Extract accuracy
 NN_accuracy <- NN_conf_matrix$overall["Accuracy"]
-cat("Neural Network Accuracy:", NN_accuracy, "\n")
+cat("Neural Network Testing Accuracy:", NN_accuracy, "\n")
 #training accuracy around 70%, testing around 57%
 
 #__________________________________________________________
@@ -462,17 +415,18 @@ cat("Neural Network Accuracy:", NN_accuracy, "\n")
 ## Random Forest Method----
 
 ###Fitting Random Forest----
-rf <- randomForest(Merged_Amphet~., data=nn_train[,-22], ntree=200, replace=TRUE, importance=TRUE)
+rf <- randomForest(Merged_Amphet~., data=train[,-22], ntree=150,mtry=15, replace=TRUE, importance=TRUE)
 
 ####Prediction----
-mean(predict(rf,nn_train) == nn_train$Merged_Amphet)
+mean(predict(rf,train) == train$Merged_Amphet)
 
 # Create confusion matrix
-rf_conf_matrix <- confusionMatrix(predict(rf,nn_test), nn_test$Merged_Amphet)
+rf_conf_matrix <- confusionMatrix(predict(rf,test), test$Merged_Amphet)
 # Extract accuracy
 rf_accuracy <- rf_conf_matrix$overall["Accuracy"]
-cat("Random Forest Accuracy:", NN_accuracy, "\n")
+cat("Random Forest Accuracy:", rf_accuracy, "\n")
 
+as.data.frame(rf$importance) %>% dplyr::select(MeanDecreaseGini) %>% arrange(desc(MeanDecreaseGini)) %>% head(3)
 
 #__________________________________________________________
 
